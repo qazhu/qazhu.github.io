@@ -1,0 +1,165 @@
+/**
+ * [OEUI] (C)2010-2099 oelove.com  biz
+ * Email: service@phpcoo.com ,phpcoo@qq.com
+ * $ Last update 2021/04/12 by CL $
+*/
+$(function () {
+
+    function OEJubao() {
+        this.obj_id = '';
+        this._this_dialog = null;
+        
+        this.w = 600;
+        this.h = 580;
+        
+        this.clickAdd();
+        this.clickSubmit();
+        
+    }
+
+    OEJubao.prototype = {
+        
+        //弹出举报
+        clickAdd:function() {
+            var _this = this;
+            
+            $(document).on("click", "[f='pop_jubao']", function(){
+                
+                var width = $(this).attr("data-width");
+                if (typeof (width) == "undefined") {
+                    width = _this.w;
+                }
+                var height = $(this).attr("data-height");
+                if (typeof (height) == "undefined") {
+                    height = _this.h;
+                }
+                
+                var touid = $(this).attr("data-uid");
+                if (typeof(touid) == 'undefined') {
+                    touid = '';
+                }
+                if (touid == '' || touid == null) {
+                    OEUI.message.msg({
+                        text: '请选择要举报的会员'
+                    });
+                    return false;
+                }
+                _this._this_dialog = OEUI.modal.dialog({
+                    type: 'iframe',
+                    title: '举报',
+                    width: width,
+                    height: height,
+                    content: _ROOT_PATH+'index.php?c=jubao&homeuid='+touid
+                });
+            });
+        },
+        
+        //提交举报 21.07.30
+        clickSubmit:function() {
+            var _this = this;
+            
+            $(document).on("click", "[f='but_submit_jubao']", function(){
+                var _that = this; //21.07.30
+                var homeuid = $("#homeuid").val();
+                if (homeuid == '' || homeuid == '0') {
+                    OEUI.message.msg({
+                        text: '请选择举报对象Uid'
+                    });
+                    return false;
+                }
+                    
+                var blacktype = $("#blacktype").val();
+                if (blacktype == '' || blacktype == '0') {
+                    OEUI.message.msg({
+                        text: '请选择举报类型'
+                    });
+                    return false;
+                }
+                var judes = $("#judes").val();
+                if (judes == '') {
+                    OEUI.message.msg({
+                        text: '请填写举报描述'
+                    });
+                    return false;
+                }
+                
+                var juimg = $("#img_url").val();
+                
+                //21.04.12
+                var juimg2 = $("#img2_url").val();
+                if (typeof(juimg2) == 'undefined') {
+                    juimg2 = '';
+                }
+                var juimg3 = $("#img3_url").val();
+                if (typeof(juimg3) == 'undefined') {
+                    juimg3 = '';
+                }
+                
+                var jumobile = $("#jumobile").val();
+                if (typeof(jumobile) == 'undefined') {
+                    jumobile = '';
+                }
+                var juemail = $("#juemail").val();
+                if (typeof(juemail) == 'undefined') {
+                    juemail = '';
+                }
+                
+                if (!$(_that).hasClass("forbid_submit")) {
+                    $(_that).addClass("forbid_submit");
+                    var loading = OEUI.loading({
+                        el: this,
+                        width: 30,
+                        height: 30
+                    });
+                    loading.show();
+                    
+                    $.ajax({
+                        type: "POST",
+                        url: _ROOT_PATH + "index.php?c=jubao",
+                        cache: false,
+                        data: {
+                            a: "savejubao", homeuid: homeuid, blacktype: blacktype,
+                            judes:judes, juimg:juimg,
+                            
+                            //21.04.12
+                            'juimg2':juimg2, 'juimg3':juimg3
+                        },
+                        dataType: "json",
+                        success: function (data) {
+                            var response = data.response;
+                            var result = data.result;
+                            if (response == '1') {
+                                OEUI.message.msg({
+                                    text: '举报/投诉提交成功，请等待审核！'
+                                });
+                                setTimeout(function () {
+                                    window.top.location.reload();
+                                }, 800);
+                            }
+                            else {
+                                if (result == '' || result == null) {
+                                    result = '提交失败，请检查';
+                                }
+                                OEUI.message.msg({
+                                    text: result
+                                });
+                            }
+                            
+                            $(_that).removeClass("forbid_submit");
+                            loading.remove();
+                        },
+                        error: function () {
+                            OEUI.message.msg({
+                                text: "系统繁忙，请稍后再试"
+                            });
+                            
+                            $(_that).removeClass("forbid_submit");
+                            loading.remove();
+                        }
+                    });
+                }
+            });
+        }
+    }
+    window.Jubao = new OEJubao();
+})

@@ -1,0 +1,871 @@
+/**
+ * [OEUI] (C)2010-2099 oelove.com Inc.biz
+ * Email: service@phpcoo.com ,phpcoo@qq.com
+ * $ Last update 2021/02/04 by CL $
+*/
+$(function () {
+
+	function OEHome() {
+        this.home_uid = '';
+        this.back_url = '';
+        this.obj_id = '';
+        this._this_dialog = null;
+        this.viewpay_dialog = null;
+        this.view_loading = null;
+        this.rpzy_dialog = null; //RP诚信框
+        
+        this.init();
+        this.clickFriend();
+        this.clickLove();
+        this.clickBlack();
+        this.clickKefu();
+        this.clickVideo();
+        this.clickMeet();
+        this.clickAfter();
+        this.clickViewWx();
+        this.clickLikeUser();
+        this.clickOther();
+        this.clickSelectPay();
+        this.clickRpzy();
+	}
+
+	OEHome.prototype = {
+        
+        //初始化
+        init:function() {
+            var _this = this;
+            var uid = $("#home_uid").val();
+            if (typeof(uid) == 'undefined') {
+                uid = '';
+            }
+            _this.home_uid = uid;
+            _this.back_url = _ROOT_PATH+'index.php?c=home&a=detail&id='+uid;
+            
+            setTimeout(function(){
+                _this.checkLevel();
+            }, 50);
+            
+            setTimeout(function(){
+                _this.getLikeUser();
+            }, 200);
+            
+            setTimeout(function(){
+                _this.getHomeQr();
+            }, 600);
+        },
+        getHomeQr:function() {
+            var _this = this;
+            $.ajax({
+                type: "POST",
+                url: _ROOT_PATH + "index.php?c=scan",
+                cache: false,
+                data: {
+                    a:"gethomeqr", uid: _this.home_uid, datatype: "base64"
+                },
+                dataType: "json",
+                success: function (data) {
+                    var response = data.response;
+                    var result = data.result;
+                    if (response == '1') {
+                        if (result != '') {
+                            $("#qr_img").attr('src', result);
+                        }
+                    }
+                },
+                error: function () {
+                    
+                }
+            });
+        },
+        
+        //判断是否登录
+        checkLogin:function() {
+            var login_status = $("#login_status").val();
+            if (typeof(login_status) == "undefined") {
+                login_status = '1';
+            }
+            if (login_status == '0') {
+                OEPOP.jdLogin();
+                return false;
+            }
+            else {
+                return true;
+            }
+        },
+        
+        //加好友
+        clickFriend:function() {
+            var _this = this;
+            
+			$(document).on("click", "[f='but_add_friend']", function () {
+                _this.obj_id = $(this).attr('id');
+                
+                var check_login = _this.checkLogin();
+                if (check_login == false) {
+                    return false;
+                }
+                
+                if (!$("#"+_this.obj_id).hasClass("forbid_submit")) {
+                    $("#"+_this.obj_id).addClass("forbid_submit");
+                    
+                    $.ajax({
+                        type: "POST",
+                        url: _ROOT_PATH + "index.php?c=home",
+                        cache: false,
+                        data: {
+                            a:"apply", id: _this.home_uid, datatype: "json"
+                        },
+                        dataType: "json",
+                        success: function (data) {
+                            var response = data.response;
+                            var result = data.result;
+                            if (response == "1") {
+                                $("[f='but_add_friend']").html("<i class='iconfont icon-jiahaoyou'></i> 已发申请</span>");
+                                OEUI.message.msg({
+                                    text: '已发送申请，请等待对方回应'
+                                });
+                            }
+                            else {
+                                //加群
+                                if (result == "20") {
+                                    //跳到着陆页
+                                    window.location.href = _ROOT_PATH + "index.php?c=qzform&a=land&uid="+_this.home_uid;
+                                    return false;
+                                }
+                                else {
+                                    if (result == '' || result == null) {
+                                        result = '操作失败，请检查';
+                                    }
+                                    OEUI.message.msg({
+                                        text: result
+                                    });
+                                }
+                            }
+                            $("#"+_this.obj_id).removeClass("forbid_submit");
+                        },
+                        error: function () {
+                            OEUI.message.error({
+                                text: "系统繁忙，请稍后再试"
+                            });
+                            $("#"+_this.obj_id).removeClass("forbid_submit");
+                        }
+                    });
+                    
+                }
+			});
+        },
+        
+        //喜欢
+        clickLove:function() {
+            var _this = this;
+            
+            $(document).on("click", "[f='but_add_listen']", function () {
+                _this.obj_id = $(this).attr('id');
+                var check_login = _this.checkLogin();
+                if (check_login == false) {
+                    return false;
+                }
+                
+				var type = $(this).attr("data-ac");
+				if (typeof (type) == "undefined") {
+					type = "add";
+				}
+				if (type == "add") {
+					var url = _ROOT_PATH+"index.php?c=home&a=addlisten";
+				}
+				else {
+					var url = _ROOT_PATH+"index.php?c=home&a=dellisten";
+				}
+                
+                if (!$("#"+_this.obj_id).hasClass("forbid_submit")) {
+                    $("#"+_this.obj_id).addClass("forbid_submit");
+                    $.ajax({
+                        type: "POST",
+                        url: url,
+                        cache: false,
+                        data: {
+                            id:_this.home_uid, datatype: "json"
+                        },
+                        dataType: "json",
+                        success: function (data) {
+                            var response = data.response;
+                            var result = data.result;
+                            if (response == "1") {
+                                if (type == "add") {
+                                    OEUI.message.msg({
+                                        text: "已喜欢",
+                                    });
+                                    $("[f='but_add_listen']").html("<i class='iconfont icon-xihuan'></i> <font color='#999'>已喜欢</font>");
+                                    $("[f='but_add_listen']").attr("data-ac", "del");
+                                }
+                                else {
+                                    OEUI.message.msg({
+                                        text: "取消成功"
+                                    });
+                                    $("[f='but_add_listen']").html("<i class='iconfont icon-xihuan'></i> 喜欢");
+                                    $("[f='but_add_listen']").attr("data-ac", "add");
+                                }
+                            }
+                            else {
+                                if (result == '' || result == null) {
+                                    result = '操作失败，请检查';
+                                }
+                                OEUI.message.msg({
+                                    text: result
+                                }); 
+                            }
+                            $("#"+_this.obj_id).removeClass("forbid_submit");
+                        },
+                        error: function () {
+                            OEUI.message.error({
+                                text: '系统繁忙，请稍后再试'
+                            });
+                            $("#"+_this.obj_id).removeClass("forbid_submit");
+                        }
+                    });
+                }
+			});
+        },
+        
+        //屏蔽会员
+        clickBlack:function() {
+            var _this = this;
+			$(document).on("click", "[f='but_do_black']", function () {
+                _this.obj_id = $(this).attr('id');
+                var check_login = _this.checkLogin();
+                if (check_login == false) {
+                    return false;
+                }
+            
+				var type = $(this).attr("data-type");
+				if (typeof (type) == "undefined") {
+					type = "add";
+				}
+				if (type == "add") {
+					OEUI.modal.info({
+						title: '温馨提示',
+						text: '将TA屏蔽后，TA不能再对你发起任何互动，TA将进入你的黑名单',
+						confirm: function () {
+							_this.sendBlack(type);
+						},
+						cancel: function () {
+                            
+						}
+					});
+				}
+				else {
+					_this.sendBlack(type);
+				}
+
+			});
+        },
+        sendBlack:function(type) {
+            var _this = this;
+            
+            $.ajax({
+				type: "POST",
+				url: _ROOT_PATH+"index.php?c=home",
+				cache: false,
+				data: {
+					a: "doblack", homeuid: _this.home_uid, type: type
+				},
+				dataType: "json",
+				success: function (data) {
+					var response = data.response;
+					var result = data.result;
+					if (response == "1") {
+						if (type == "add") {
+							OEUI.message.msg({
+								text: '屏蔽成功'
+							});
+						}
+						else {
+							OEUI.message.msg({
+								text: '已取消屏蔽'
+							});
+						}
+						setTimeout(function () {
+							window.location.reload();
+						}, 600);
+					}
+					else {
+                        if (result == '' || result == null) {
+                            result = '操作失败，请检查';
+                        }
+                        OEUI.message.msg({
+                            text: result
+                        });
+					}
+				},
+				error: function () {
+					OEUI.message.msg({
+						text: '系统繁忙，请稍后再试'
+					});
+				}
+			});
+        },
+        
+        //关闭客服
+        clickKefu:function() {
+            var _this = this;
+            $(document).on("click", "[f='but_close_kefu']", function(){
+                //$("#kefu_dialog").hide();
+                if (_this._this_dialog) {
+                    _this._this_dialog.remove();
+                }
+            });
+            
+        },
+        showKefu:function() {
+            var _this = this;
+            $.ajax({
+				type: "POST",
+				url: _ROOT_PATH + "index.php?c=ajax",
+				cache: false,
+				data: {
+					a: "kefu"
+				},
+				dataType: "json",
+				success: function (data) {
+					var response = data.response;
+					var result = data.result;
+					if (response == "1") {
+                        $("#kefu_data").html(result);
+                        _this._this_dialog = OEUI.modal.dialog({
+                            el:'#kefu_dialog',
+                            type: 'custom'
+                        });
+					}
+					else {
+						OEUI.message.msg({
+							text: '该会员已隐藏联系方式，请与网站客服联系'
+						});
+					}
+				},
+				error: function () {
+					OEUI.message.msg({
+						text: '该会员已隐藏联系方式，请与网站客服联系'
+					});
+				}
+			});
+        },
+        
+        //点击视频
+        clickVideo:function() {
+            var _this = this;
+            
+			$(document).on("click", "[f='but_video_tips']", function () {
+				var uid = $(this).attr("data-uid");
+				var siteurl = $(this).attr("data-siteurl");
+				if (typeof(siteurl) == "undefined") {
+					siteurl = _ROOT_PATH;
+				}
+				var qr_url = siteurl+"index.php?m=wap&c=video&s_uid="+uid+"&nofollow=1";
+				$("#video_qrcode").attr("src", _ROOT_PATH+"index.php?c=scan&a=getqr&size=4&url="+ encodeURIComponent(qr_url));
+				//$("#video_tips_box").show();
+                _this._this_dialog = OEUI.modal.dialog({
+                    el:'#video_tips_box',
+                    type: 'custom'
+                });
+                
+			});
+            
+			$(document).on("click", "[f='but_close_video_tips']", function () {
+				//$("#video_tips_box").hide();
+                if (_this._this_dialog) {
+                    _this._this_dialog.remove();
+                }
+			});
+        },
+        
+        //约会
+        clickMeet:function() {
+            var _this = this;
+            
+			$(document).on("click", "[f='but_meet_add']", function () {
+                //_this.obj_id = $(this).attr('id');
+                var check_login = _this.checkLogin();
+                if (check_login == false) {
+                    return false;
+                }
+				var width = $(this).attr("data-width");
+				if (typeof (width) == "undefined") {
+					width = 800;
+				}
+				var height = $(this).attr("data-height");
+				if (typeof (height) == "undefined") {
+					height = 580;
+				}
+				OEUI.modal.dialog({
+					type: 'iframe',
+					title: '1对1约会',
+					width: width,
+					height: height,
+					content: _ROOT_PATH + "index.php?m=user&c=meet&a=add&touid="+_this.home_uid
+				});
+			}); 
+        },
+        
+        //委托牵线
+        clickAfter:function() {
+            var _this = this;
+            
+            $(document).on("click", "[f='but_after_line']", function(){
+                var needlogin = $(this).attr("data-needlogin");
+                if (typeof(needlogin) == "undefined") {
+                    needlogin = "0";
+                }
+                if (needlogin == "1") {
+                    var check_login = _this.checkLogin();
+                    if (check_login == false) {
+                        return false;
+                    }
+                }
+                var width = $(this).attr("data-width");
+                if (typeof(width) == "undefined") {
+                    width = 600;
+                }
+                var height = $(this).attr("data-height");
+                if (typeof(height) == "undefined") {
+                    height = 520;
+                }
+                
+                var url = _ROOT_PATH+"index.php?c=crmapp&a=after&buid="+_this.home_uid;
+                OEUI.modal.dialog({
+					type: 'iframe',
+					title: '委托牵线',
+					width: width,
+					height: height,
+					content: url
+				});
+            });
+        },
+        
+        
+        //查看微信
+        clickViewWx:function() {
+            var _this = this;
+
+			$(document).on("click", "[f='but_view_contact']", function () {
+                _this.obj_id = $(this).attr('id');
+                
+				var width = $(this).attr("data-width");
+				if (typeof(width) == "undefined") {
+					width = 500;
+				}
+				var height = $(this).attr("data-height");
+				if (typeof(height) == "undefined") {
+					height = 500;
+				}
+                
+				$.ajax({
+					type: "POST",
+					url: _ROOT_PATH + "index.php?c=view",
+					cache: false,
+					data: {
+						a: "contact", id: _this.home_uid
+					},
+					dataType: "json",
+					success: function (data) {
+						var response = data.response;
+						var result = data.result;
+						if (response == '1') {
+                            //可查看
+							_this.getContact(width, height);
+						}
+						else if (response == '2') {
+                            //没有vip权限
+                            OETips.vipTips();
+						}
+						else if (response == '3') {
+							//弹出付款方式
+                            _this.openViewPay(result);
+						}
+						else if (response == '4') {
+							OETips.dayViewsTips();
+						}
+						else if (response == '12') {
+                            //弹出客服
+                            _this.showKefu();
+						}
+						else {
+							//加群
+							if (result == '20') {
+								//跳到着陆页
+								window.location.href = _ROOT_PATH + "index.php?c=qzform&a=land&uid="+_this.home_uid;
+								return false;
+							}
+							else {
+                                if (result == '' || result == null) {
+                                    result = '查看失败，请检查权限';
+                                }
+                                OEUI.message.msg({
+                                    text: result
+                                });
+							}
+						}
+					},
+					error: function () {
+						OEUI.message.msg({
+							text: "系统繁忙，请稍后再试"
+						});
+					}
+				});
+
+			});
+        },
+        getContact:function(width, height) {
+            var _this = this;
+            
+            if (typeof (width) == "undefined") {
+				width = 500;
+			}
+			if (typeof (height) == "undefined") {
+				height = 500;
+			}
+
+			OEUI.modal.dialog({
+				type: 'iframe',
+				title: '查看微信',
+				width: width,
+				height: height,
+				content: _ROOT_PATH+'index.php?c=view&a=contact&id='+_this.home_uid+'&needup=1'
+			}); 
+        },
+        
+        //猜你喜欢
+        clickLikeUser:function() {
+            var _this = this;
+            $(document).on("click", "[f='but_change_like']", function () {
+                _this.getLikeUser();
+            });
+        },
+        getLikeUser:function() {
+            var _this = this;
+            var gender = $("#home_gender").val();
+            if (typeof(gender) == 'undefined') {
+                gender = '0';
+            }
+            $.ajax({
+                type: "POST",
+                url: _ROOT_PATH + "index.php?c=index",
+                cache: false,
+                data: {
+                    a: "like", datatype: "json", gender: gender
+                },
+                dataType: "json",
+                success: function (data) {
+                    var response = data.response;
+                    var result = data.result;
+                    if (response == "1") {
+                        $("#like_data").html(result).show();
+                    }
+                },
+                error: function () {
+
+                }
+            });
+        },
+        
+        //其他点击
+        clickOther:function() {
+            var _this = this;
+            
+            //设置资料项
+			$(document).on("click", "[f='but_open_profile_tips']", function () {
+				OETips.setTips();
+			});
+            
+			//保密提示
+			$(document).on("click", "[f='but_secret_tips']", function () {
+				OEUI.message.msg({
+					text: "该会员联系方式已设置保密<br />你可以通过私信跟TA取得联系。"
+				});
+			});
+            
+			//没有权限提醒
+			$(document).on("click", "[f='but_nopower_tips']", function () {
+                OETips.vipTips();
+			});
+            
+            //升级VIP提示
+            $(document).on("click", "[f='but_vip_tips']", function(){
+                OETips.vipTips();
+            });
+            
+            //引导认证手机
+            $(document).on("click", "[f='but_mobilerz_tips']", function(){
+                OETips.rzMobileTips();
+            });
+            
+            //引导完善资料
+            $(document).on("click", "[f='but_mydata_tips']", function(){
+                var tips_type = $(this).attr("data-type");
+                OETips.dataTips(tips_type);
+            });
+        },
+        
+        //发送微信通知
+		sendWxVisitTip:function () {
+            var _this = this;
+			$.ajax({
+				type: "POST",
+				url: _ROOT_PATH + "index.php?c=home",
+				cache: false,
+				data: {
+					a: "sendwxtip", uid: _this.home_uid
+				},
+				dataType: "json",
+				success: function (data) {
+					var response = data.response;
+					var result = data.result;
+					if (response == '1') {
+
+					}
+				},
+				error: function () {
+
+				}
+			});
+		},
+        
+		//浏览等级判断
+		checkLevel: function () {
+            var _this = this;
+			$.ajax({
+				type: "POST",
+				url: _ROOT_PATH + "index.php?c=home",
+				cache: false,
+				data: {
+					a: "checklevel", uid: _this.home_uid
+				},
+				dataType: "json",
+				success: function (data) {
+					var response = data.response;
+					var result = data.result;
+					if (response == '1') {
+                        
+					}
+					else {
+						var home_level = parseInt(result);
+						//没有权限...
+						$("#level_tips").html("VIP" + (home_level-1));
+                        OEUI.modal.dialog({
+                            el:'#level_dialog',
+                            type: 'custom'
+                        });
+					}
+				},
+				error: function () {
+
+				}
+			});
+		},
+        
+        //选择支付方式
+        clickSelectPay:function() {
+            var _this = this;
+            
+            $(document).on("click", "[f='select_paytype']", function(){
+                var type = $(this).attr('data-type');
+                $("[f='select_paytype']").removeClass('bo_main');
+                $(this).addClass('bo_eb');
+
+                setTimeout(function(){
+                   _this.sendPay(type); 
+                }, 500);
+            });
+            
+            $(document).on("click", "[f='but_close_viewpay']", function(){
+                if (_this.viewpay_dialog) {
+                    _this.viewpay_dialog.remove();
+                }
+            });
+            
+            
+        },
+		//弹出查看支付
+		openViewPay: function (fee) {
+            var _this = this;
+            fee = parseFloat(fee);
+            $("#fee_tips").html(fee);
+            
+            var login_remain = parseFloat($("#login_remain_money").val());
+            if (login_remain >= fee) {
+                //弹出选择
+                _this.viewpay_dialog = OEUI.modal.dialog({
+                    el:'#viewpay_dialog',
+                    type: 'custom'
+                });
+                return false;
+            }
+            _this.sendPay();
+		},
+        //请求支付
+        sendPay:function(paytype) {
+            var _this = this;
+            if (typeof(paytype) == 'undefined') {
+                paytype = 'onlinepay'; //默认在线支付
+            }
+            
+            var loading = OEUI.loading({
+                el: $('body')[0],
+                width: 50,
+                height: 50,
+                color: '#999',
+                bgColor: 'rgba(0, 0, 0, 0)',
+                position: 'fixed'
+            });
+            loading.show();
+            
+            $.ajax({
+                type: "POST",
+                url: _ROOT_PATH + "index.php?c=view",
+                cache: false,
+                data: {
+                    a: "paycontact", id: _this.home_uid, 
+                    paytype:paytype
+                },
+                dataType: "json",
+                success: function (data) {
+                    var response = data.response;
+                    var result = data.result;
+
+                    loading.remove();
+                    
+                    if (response == '1') {
+                        OEUI.message.msg({
+                            text: "支付成功"
+                        });
+                
+                        //余额支付成功
+                        if (_this.viewpay_dialog) {
+                            _this.viewpay_dialog.remove();
+                            setTimeout(function(){
+                                _this.getContact();
+                            }, 300);
+                        }
+                        else {
+                            _this.getContact();
+                        }
+                    }
+                    else if (response == '2') {
+                        //在线支付
+                        if (_this.viewpay_dialog) {
+                            _this.viewpay_dialog.remove();
+                            setTimeout(function(){
+                                OEPOP.jdPay(result);
+                            }, 300);
+                        }
+                        else {
+                            OEPOP.jdPay(result);
+                        }
+                    }
+                    else {
+                        if (result == '' || result == null) {
+                            result = '查看失败，请检查权限';
+                        }
+                        OEUI.message.msg({
+                            text: result
+                        });
+                    }
+                },
+                error: function () {
+                    loading.remove();
+                    OEUI.message.msg({
+                        text: "系统繁忙，请稍后再试"
+                    });
+                }
+            });
+        },
+        
+        //查询诚信 21.02.04
+        clickRpzy:function() {
+            var _this = this;
+            
+            //查询诚信
+			$(document).on("click", "[f='but_view_rpzy']", function () {
+                //_this.obj_id = $(this).attr('id');
+                var check_login = _this.checkLogin();
+                if (check_login == false) {
+                    return false;
+                }
+                
+                var loading = OEUI.loading({
+                    el: $('body')[0],
+                    width: 50,
+                    height: 50,
+                    color: '#999',
+                    bgColor: 'rgba(0, 0, 0, 0)',
+                    position: 'fixed'
+                });
+                loading.show();
+                
+                $.ajax({
+                    type: "POST",
+                    url: _ROOT_PATH + "index.php?c=home",
+                    cache: false,
+                    data: {
+                        a: "viewcredit", id: _this.home_uid
+                    },
+                    dataType: "json",
+                    success: function (data) {
+                        var response = data.response;
+                        var result = data.result;
+                        loading.remove();
+                        
+                        if (response == '1') {
+                            //弹出页
+                            $("#rpzy_data").html(result);
+                            _this.rpzy_dialog = OEUI.modal.dialog({
+                                type: 'custom',
+                                el: '#rpzy_dialog'
+                            });
+                        }
+                        else if (response == '2') {
+                            var ret_code = result.ret_code;
+                            if (typeof(ret_code) == 'undefined') {
+                                ret_code = '';
+                            }
+                            var ret_msg = result.ret_msg;
+                            if (typeof(ret_msg) == 'undefined') {
+                                ret_msg = '';
+                            }
+                            if (ret_msg == '' || ret_msg == null) {
+                                ret_msg = '查看失败，请检查权限';
+                            }
+                            OEUI.message.msg({
+                                text:ret_msg
+                            });
+                        }
+                        else {
+                            if (result == '' || result == null) {
+                                result = '查看失败，请检查权限';
+                            }
+                            OEUI.message.msg({
+                                text: result
+                            });
+                        }
+                    },
+                    error: function () {
+                        loading.remove();
+                        OEUI.message.msg({
+                            text: "系统繁忙，请稍后再试"
+                        });
+                    }
+                });
+			});
+            
+            //关闭查询
+            $(document).on("click", "[f='but_close_rpzy']", function(){
+                if (_this.rpzy_dialog) {
+                    _this.rpzy_dialog.remove();
+                } 
+            });
+            
+        }
+	}
+
+	window.Home = new OEHome();
+
+});

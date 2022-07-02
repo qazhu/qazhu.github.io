@@ -1,0 +1,103 @@
+@font-face {
+  font-family: "oeuifont"; /* Project id 1989497 */
+  src: url('iconfont.woff2?t=1622538814655') format('woff2'),
+       url('iconfont.woff?t=1622538814655') format('woff'),
+       url('iconfont.ttf?t=1622538814655') format('truetype');
+}
+
+.oeuifont {
+  font-family: "oeuifont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.oeui-chuangkouyoubian-fenping:before {
+  content: "\e638";
+}
+
+.oeui-chuangkoufangda:before {
+  content: "\e604";
+}
+
+.oeui-icon-load:before {
+  content: "\e603";
+}
+
+.oeui-xuanzhuan:before {
+  content: "\e612";
+}
+
+.oeui-suoxiao:before {
+  content: "\e67f";
+}
+
+.oeui-fangda:before {
+  content: "\e65e";
+}
+
+.oeui-xuanzhuan-r:before {
+  content: "\e607";
+}
+
+.oeui-next:before {
+  content: "\e679";
+}
+
+.oeui-prev:before {
+  content: "\e680";
+}
+
+.oeui-guanbi1:before {
+  content: "\e602";
+}
+
+.oeui-xia:before {
+  content: "\e622";
+}
+
+.oeui-duoxuankuangdagou:before {
+  content: "\e63c";
+}
+
+.oeui-ziliao:before {
+  content: "\e632";
+}
+
+.oeui-jia:before {
+  content: "\e600";
+}
+
+.oeui-shang:before {
+  content: "\e606";
+}
+
+.oeui-tishicopy-:before {
+  content: "\e666";
+}
+
+.oeui-zuo:before {
+  content: "\e664";
+}
+
+.oeui-you:before {
+  content: "\e601";
+}
+
+.oeui-guanbi:before {
+  content: "\e60d";
+}
+
+.oeui-trash:before {
+  content: "\e623";
+}
+
+.oeui-sandian:before {
+  content: "\e696";
+}
+
+.oeui-checkbox:before {
+  content: "\e609";
+}
+

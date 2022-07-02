@@ -1,0 +1,155 @@
+/**
+ * [OEUI] (C)2010-2099 oelove.com Inc.biz
+ * Email: service@phpcoo.com ,phpcoo@qq.com
+ * $ Last update 2020/11/17 by at $
+*/
+$(function () {
+    
+	function OEHomeTips() {
+        this.home_uid = '';
+        this.back_url = '';
+	}
+
+	OEHomeTips.prototype = {
+        
+        //初始化
+        initTips:function() {
+            var _this = this;
+            var uid = $("#home_uid").val();
+            if (typeof(uid) == 'undefined') {
+                uid = '';
+            }
+            _this.home_uid = uid;
+            _this.back_url = _ROOT_PATH+'index.php?c=home&a=detail&id='+uid;
+        },
+        
+        //没有Vip权限
+        vipTips:function() {
+            var _this = this;
+            
+            OEUI.modal.info({
+				title: '温馨提示',
+				text: '你没有权限执行此操作，请先升级VIP',
+                cancelText: '知道了',
+                confirmText: '立即升级',
+				confirm: function () {
+					window.location.href = _ROOT_PATH+"index.php?m=user&c=vip&fromurl="+encodeURIComponent(_this.back_url);
+				},
+				cancel: function () {
+                    
+				}
+			});
+        },
+        
+        //完善资料
+        dataTips:function(tips_type) {
+            var _this = this;
+            if (typeof(tips_type) == "undefined") {
+                tips_type = "1";
+            }
+            if (tips_type == "2") {
+                var tips = "您的资料审核未通过，无法进行操作。";
+            }
+            else if (tips_type == '3') {
+                OEUI.message.msg({
+                    text: "你的帐号已被拉黑，无法进行互动，请联系网站客服"
+                });
+                return false;
+            }
+            else if (tips_type == '4') {
+                OEUI.message.msg({
+                    text: "您已经关闭了征婚状态，请在个人中心开启，才能进行互动。"
+                });
+                return false;
+            }
+            else if (tips_type == '5') {
+                var tips = "你的资料已设置隐藏，无法进行互动，<br >你可以在会员中心的“设置”开启";
+            }
+            else {
+                var tips = "您的资料审核中，无法进行操作。";
+            }
+            
+            if (tips_type == '5') {
+                OEUI.modal.info({
+                    title: '温馨提示',
+                    text: tips,
+                    confirmText: '去设置',
+                    cancelText: '知道了',
+                    confirm: function() {
+                        window.location.href = _ROOT_PATH+"index.php?m=user&c=set&nofollow=1";
+                    },
+                    cancel:function() {
+                        
+                    }
+                });
+            }
+            else {
+                OEUI.modal.info({
+                    title: '温馨提示',
+                    text: tips,
+                    confirmText: '去完善',
+                    cancelText: '知道了',
+                    confirm: function() {
+                        window.location.href = _ROOT_PATH+"index.php?m=user&c=profile&nofollow=1";
+                    },
+                    cancel:function() {
+                        
+                    }
+                });
+            }
+        },
+        
+        //超过查看次数
+        dayViewsTips:function() {
+            var _this = this;
+            OEUI.modal.info({
+				title: '温馨提示',
+				text: '查看次数已用完<br />请升级VIP或明日再查看',
+                cancelText: '知道了',
+                confirmText: '立即升级',
+				confirm: function () {
+					window.location.href = _ROOT_PATH+"index.php?m=user&c=vip&fromurl="+encodeURIComponent(_this.back_url);
+				},
+				cancel: function () {
+                    
+				}
+			});
+        },
+        
+        //某项没有设置提示
+        setTips:function() {
+            var _this = this;
+            OEUI.modal.info({
+                title: '温馨提示',
+                text: '对不起，你当前资料项未设置<br />无法查看会员的信息，请先编辑。',
+                confirmText: '去完善',
+                cancelText: '知道了',
+                confirm: function () {
+                    window.location.href = _ROOT_PATH + "index.php?m=user&c=profile&nofollow=1";
+                },
+                cancel: function () {
+                    
+                }
+            });
+        },
+        
+        //认证手机
+        rzMobileTips:function() {
+            var _this = this;
+            OEUI.modal.info({
+                title: '温馨提示',
+                text: '你的手机号还未认证，无法进行互动！',
+                confirmText: '去认证',
+                cancelText: '知道了',
+                confirm: function () {
+                    window.location.href = _ROOT_PATH + "index.php?m=user&c=rz";
+                },
+                cancel: function () {
+                    
+                }
+            });
+        }
+	}
+    
+	window.OETips = new OEHomeTips();
+});

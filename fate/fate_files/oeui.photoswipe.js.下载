@@ -1,0 +1,1004 @@
+/**
+ * [OEUI] (C)2010-2099 oelove.com biz
+ * Email: service@phpcoo.com ,phpcoo@qq.com
+ * $ Last update 2020.11.24 by bo $
+*/
+(function () {
+  'use strict';
+
+  if (!Array.from) {
+    Array.from = function () {
+      var toStr = Object.prototype.toString;
+
+      var isCallable = function isCallable(fn) {
+        return typeof fn === 'function' || toStr.call(fn) === '[object Function]';
+      };
+
+      var toInteger = function toInteger(value) {
+        var number = Number(value);
+
+        if (isNaN(number)) {
+          return 0;
+        }
+
+        if (number === 0 || !isFinite(number)) {
+          return number;
+        }
+
+        return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
+      };
+
+      var maxSafeInteger = Math.pow(2, 53) - 1;
+
+      var toLength = function toLength(value) {
+        var len = toInteger(value);
+        return Math.min(Math.max(len, 0), maxSafeInteger);
+      }; // The length property of the from method is 1.
+
+
+      return function from(arrayLike
+      /*, mapFn, thisArg */
+      ) {
+        // 1. Let C be the this value.
+        var C = this; // 2. Let items be ToObject(arrayLike).
+
+        var items = Object(arrayLike); // 3. ReturnIfAbrupt(items).
+
+        if (arrayLike == null) {
+          throw new TypeError("Array.from requires an array-like object - not null or undefined");
+        } // 4. If mapfn is undefined, then let mapping be false.
+
+
+        var mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+        var T;
+
+        if (typeof mapFn !== 'undefined') {
+          // 5. else
+          // 5. a If IsCallable(mapfn) is false, throw a TypeError exception.
+          if (!isCallable(mapFn)) {
+            throw new TypeError('Array.from: when provided, the second argument must be a function');
+          } // 5. b. If thisArg was supplied, let T be thisArg; else let T be undefined.
+
+
+          if (arguments.length > 2) {
+            T = arguments[2];
+          }
+        } // 10. Let lenValue be Get(items, "length").
+        // 11. Let len be ToLength(lenValue).
+
+
+        var len = toLength(items.length); // 13. If IsConstructor(C) is true, then
+        // 13. a. Let A be the result of calling the [[Construct]] internal method 
+        // of C with an argument list containing the single item len.
+        // 14. a. Else, Let A be ArrayCreate(len).
+
+        var A = isCallable(C) ? Object(new C(len)) : new Array(len); // 16. Let k be 0.
+
+        var k = 0; // 17. Repeat, while k < len… (also steps a - h)
+
+        var kValue;
+
+        while (k < len) {
+          kValue = items[k];
+
+          if (mapFn) {
+            A[k] = typeof T === 'undefined' ? mapFn(kValue, k) : mapFn.call(T, kValue, k);
+          } else {
+            A[k] = kValue;
+          }
+
+          k += 1;
+        } // 18. Let putStatus be Put(A, "length", len, true).
+
+
+        A.length = len; // 20. Return A.
+
+        return A;
+      };
+    }();
+  }
+
+  if (!Array.prototype.forEach) {
+    Array.prototype.forEach = function (callback
+    /*, thisArg*/
+    ) {
+      var T, k;
+
+      if (this == null) {
+        throw new TypeError('this is null or not defined');
+      } // 1. Let O be the result of calling toObject() passing the
+      // |this| value as the argument.
+
+
+      var O = Object(this); // 2. Let lenValue be the result of calling the Get() internal
+      // method of O with the argument "length".
+      // 3. Let len be toUint32(lenValue).
+
+      var len = O.length >>> 0; // 4. If isCallable(callback) is false, throw a TypeError exception. 
+      // See: http://es5.github.com/#x9.11
+
+      if (typeof callback !== 'function') {
+        throw new TypeError(callback + ' is not a function');
+      } // 5. If thisArg was supplied, let T be thisArg; else let
+      // T be undefined.
+
+
+      if (arguments.length > 1) {
+        T = arguments[1];
+      } // 6. Let k be 0.
+
+
+      k = 0; // 7. Repeat while k < len.
+
+      while (k < len) {
+        var kValue; // a. Let Pk be ToString(k).
+        //    This is implicit for LHS operands of the in operator.
+        // b. Let kPresent be the result of calling the HasProperty
+        //    internal method of O with argument Pk.
+        //    This step can be combined with c.
+        // c. If kPresent is true, then
+
+        if (k in O) {
+          // i. Let kValue be the result of calling the Get internal
+          // method of O with argument Pk.
+          kValue = O[k]; // ii. Call the Call internal method of callback with T as
+          // the this value and argument list containing kValue, k, and O.
+
+          callback.call(T, kValue, k, O);
+        } // d. Increase k by 1.
+
+
+        k++;
+      } // 8. return undefined.
+
+    };
+  }
+
+  var clickTime = 0;
+  var clickTimer = null;
+  var zoomLeft = 0;
+  var zoomTop = 0;
+  var clickNum = 0;
+  var clickType = 'click';
+  var hideTimer = 0;
+  var now, delta; //当前时间，两次触发事件时间差
+
+  var PhotoSwipe = /*#__PURE__*/function () {
+    function PhotoSwipe(opitons) {
+      var defaultOption = {};
+      this.opitons = Object.assign({}, defaultOption, opitons);
+      this.screenWidth = window.innerWidth; // 屏幕宽度
+
+      this.screenHeight = window.innerHeight; // 屏幕高度
+
+      this.pswp = null; // photoswipe dom对象
+
+      this.img = []; // 图片dom对象数组
+
+      this.target = null; // 触发点击的img
+
+      this.index = 0; // 下标
+
+      this.scroller = null;
+      this.zoomType = 'show'; // 缩放类型 show hide zoom
+
+      this.minX = 0;
+      this.maxX = 0;
+      this.wrapperWidth = 0;
+      this.offsetX = 0;
+      this.duration = 0;
+      this.bezier = 'linear';
+      this.startX = 0;
+      this.pointX = 0;
+      this.startTime = 0; // 惯性滑动范围内的 startTime
+
+      this.momentumStartX = 0; // 惯性滑动范围内的 startY
+
+      this.momentumTimeThreshold = 300; // 惯性滑动的启动 时间阈值
+
+      this.momentumYThreshold = 15; // 惯性滑动的启动 距离阈值
+
+      this.isStarted = false; // start锁
+
+      this.isInitSlide = false;
+      this.threshold = 30;
+      this.zoomTouch = [];
+      this.isChange = false;
+      this.isTransition = false; // 是否正在执行动画
+
+      this.loading = null;
+      this.init();
+    }
+
+    var _proto = PhotoSwipe.prototype;
+
+    _proto.init = function init() {
+      var _this = this;
+
+      this.renderWrap();
+      setTimeout(function () {
+        _this.pswp = document.querySelector('.oe_pswp');
+        _this.scroller = _this.pswp.querySelector('.oe_pswp_container');
+
+        _this.bindClickImage();
+
+        _this.bindDOMNodeInserted();
+
+        _this.bindClose();
+
+        _this.bindZoomUp();
+
+        _this.bindZoomDown();
+
+        _this.bindNext();
+
+        _this.bindPrev();
+      }, 50);
+    };
+
+    _proto.renderWrap = function renderWrap() {
+      var html = "\n        <div class=\"oe_pswp\">\n          <div class=\"oe_pswp_bg\"></div>\n          <div class=\"oe_pswp_wrap\">\n            <div class=\"oe_pswp_container\">\n            </div>\n          </div>\n          <div class=\"tool\">\n            <div class=\"btn zoom_down disabled\">\n              <em class=\"oeuifont oeui-suoxiao\"></em>\n            </div>\n            <div class=\"btn zoom_up\">\n              <em class=\"oeuifont oeui-fangda\"></em>\n            </div>\n            <div class=\"btn close\">\n              <em class=\"oeuifont oeui-guanbi\"></em>\n            </div>\n          </div>\n          <div class=\"prev\">\n            <em class=\"oeuifont oeui-prev\"></em>\n          </div>\n          <div class=\"next\">\n            <em class=\"oeuifont oeui-next\"></em>\n          </div>\n        </div>\n      ";
+      var div = document.createElement('div');
+      div.innerHTML = html;
+      document.body.appendChild(div.firstElementChild);
+    };
+
+    _proto.bindClickImage = function bindClickImage() {
+      var _this2 = this;
+
+      document.addEventListener('click', function (e) {
+        var target = e.target;
+        _this2.target = target;
+        var preview = target.getAttribute('preview');
+        var list = document.querySelectorAll("[preview=\"" + preview + "\"]");
+
+        if (list.length > 0) {
+          _this2.showLoading();
+
+          _this2.getImage(list);
+        }
+      }, false);
+    };
+
+    _proto.getImage = function getImage(list) {
+      var _this3 = this;
+
+      var arr = Array.from(list);
+      var p = arr.map(function (v, i) {
+        var url = v.getAttribute('data-src');
+
+        var image = _this3.loadImage(url);
+
+        return image;
+      });
+      Promise.all(p).then(function (imgArr) {
+        imgArr.forEach(function (image, i) {
+          var _arr$i$getBoundingCli = arr[i].getBoundingClientRect(),
+              width = _arr$i$getBoundingCli.width,
+              height = _arr$i$getBoundingCli.height,
+              top = _arr$i$getBoundingCli.top,
+              left = _arr$i$getBoundingCli.left;
+
+          var url = arr[i].getAttribute('data-src');
+          var naturalWidth = image.naturalWidth;
+          var naturalHeight = image.naturalHeight;
+          var renderWidth = 0;
+          var renderHeihgt = 0;
+          var renderTop = 0;
+          var renderLeft = 0;
+          var scale = 1;
+          var screenRatio = _this3.screenWidth / _this3.screenHeight;
+          var imageRatio = naturalWidth / naturalHeight;
+
+          if (imageRatio > screenRatio) {
+            if (naturalWidth > _this3.screenWidth) {
+              renderWidth = _this3.screenWidth;
+              renderHeihgt = renderWidth / naturalWidth * naturalHeight;
+            } else {
+              renderWidth = naturalWidth;
+              renderHeihgt = naturalHeight;
+            }
+
+            scale = width / renderWidth;
+          } else {
+            if (naturalHeight > _this3.screenHeight) {
+              renderHeihgt = _this3.screenHeight;
+              renderWidth = renderHeihgt / naturalHeight * naturalWidth;
+            } else {
+              renderWidth = naturalWidth;
+              renderHeihgt = naturalHeight;
+            }
+
+            scale = height / renderHeihgt;
+          }
+
+          renderLeft = (_this3.screenWidth - renderWidth) / 2;
+          renderTop = (_this3.screenHeight - renderHeihgt) / 2;
+          var img = {
+            el: arr[i],
+            url: url,
+            width: width,
+            height: height,
+            top: top,
+            left: left,
+            orign: {
+              width: renderWidth < naturalWidth ? naturalWidth : naturalWidth * 1.5,
+              height: renderHeihgt < naturalHeight ? naturalHeight : naturalHeight * 1.5
+            },
+            render: {
+              width: renderWidth,
+              height: renderHeihgt,
+              top: renderTop,
+              left: renderLeft,
+              scale: scale,
+              rotate: 0
+            }
+          };
+
+          if (arr[i] == _this3.target) {
+            _this3.index = i;
+          }
+
+          _this3.img.push(img);
+        });
+
+        _this3.show();
+      });
+    };
+
+    _proto.show = function show() {
+      var _this4 = this;
+
+      var html = this.render();
+      this.scroller.innerHTML = html;
+      this.scroller.style.cssText = "transform: translate3d(" + this.index * this.screenWidth * -1 + "px, 0, 0)";
+      this.pswp.style.display = 'block';
+      setTimeout(function () {
+        _this4.pswp.querySelector('.oe_pswp_bg').style.opacity = '0.5';
+
+        _this4.hideLoading();
+      }, 50);
+    };
+
+    _proto.clickHide = function clickHide() {
+      if (clickType != 'click') return;
+      if (this.isTransition) return;
+      this.pswp.querySelectorAll('.oe_pswp_item')[this.index].children[0].style.cssText = "transform: translate3d(" + this.img[this.index].left + "px, " + this.img[this.index].top + "px, 0) scale(" + this.img[this.index].render.scale + ")";
+      this.pswp.querySelector('.oe_pswp_bg').style.opacity = '0';
+      this.zoomType = 'hide';
+      this.img = [];
+      this.isChange = false;
+    };
+
+    _proto.loadImage = function loadImage(src) {
+      return new Promise(function (resolve, reject) {
+        var image = new Image();
+
+        image.onload = function () {
+          resolve(image);
+        };
+
+        image.error = function () {
+          reject();
+        };
+
+        image.src = src;
+      });
+    };
+
+    _proto.render = function render() {
+      var _this5 = this;
+
+      var html = '';
+      this.img.forEach(function (v, i) {
+        if (i == _this5.index) {
+          html += "\n            <div class=\"oe_pswp_item\" style=\"width: " + _this5.screenWidth + "px;\">\n              <div class=\"oe_pswp_zoom\" style=\"transform: translate3d(" + v.left + "px, " + v.top + "px, 0) scale(" + v.render.scale + ")\">\n                <img src=\"" + v.url + "\" style=\"width: " + v.render.width + "px;height: " + v.render.height + "px;\">\n              </div>\n            </div>\n          ";
+        } else {
+          html += "\n            <div class=\"oe_pswp_item\" style=\"width: " + _this5.screenWidth + "px;\">\n              <div class=\"oe_pswp_zoom\" style=\"transform: translate3d(" + v.render.left + "px, " + v.render.top + "px, 0) scale(1)\">\n                <img src=\"" + v.url + "\" style=\"width: " + v.render.width + "px;height: " + v.render.height + "px;\">\n              </div>\n            </div>\n          ";
+        }
+      });
+      return html;
+    };
+
+    _proto.bindDOMNodeInserted = function bindDOMNodeInserted() {
+      var _this6 = this;
+
+      this.scroller.addEventListener('DOMNodeInserted', function () {
+        if (_this6.isChange) {
+          return;
+        }
+
+        _this6.isChange = true;
+        setTimeout(function () {
+          _this6.pswp.querySelectorAll('.oe_pswp_item')[_this6.index].children[0].style.cssText = "transform: translate3d(" + _this6.img[_this6.index].render.left + "px, " + _this6.img[_this6.index].render.top + "px, 0) scale(1)";
+
+          _this6.bindZoomItemEvent();
+
+          if (!_this6.isInitSlide) {
+            _this6.initSlide();
+
+            _this6.isInitSlide = true;
+          } else {
+            _this6.minX = _this6.screenWidth - _this6.img.length * _this6.screenWidth;
+          }
+        }, 50);
+      }, false);
+    };
+
+    _proto.bindZoomItemEvent = function bindZoomItemEvent() {
+      var _this7 = this;
+
+      var list = this.pswp.querySelectorAll('.oe_pswp_zoom');
+      var arr = Array.from(list);
+      arr.forEach(function (v, i) {
+        // v.addEventListener('touchstart', this.zoomItemTouchStart.bind(this), false)
+        v.addEventListener('transitionend', _this7.zoomItemTransitionEnd.bind(_this7), false); // v.addEventListener('touchend', this.zoomItemDoubleClick.bind(this), false)
+        // v.addEventListener('touchcancel', this.zoomItemDoubleClick.bind(this), false)
+
+        _this7.zoomTouch[i] = new Touch({
+          el: v,
+          img: _this7.img[i]
+        });
+      });
+    };
+
+    _proto.zoomItemTouchStart = function zoomItemTouchStart() {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = 0;
+    };
+
+    _proto.zoomItemTransitionEnd = function zoomItemTransitionEnd(e) {
+      this.isTransition = false;
+      e.stopPropagation();
+      var image = this.img[this.index];
+
+      if (this.zoomType == 'hide') {
+        this.pswp.style.display = 'none';
+        this.zoomType = 'show';
+      }
+
+      if (this.zoomType == 'zoomUp') {
+        if (this.zoomTouch[this.index].isMove) return;
+        this.pswp.querySelectorAll('.oe_pswp_zoom')[this.index].style.cssText = "transform: translate3d(" + zoomLeft + "px, " + zoomTop + "px, 0) scale(1) rotate(" + image.render.rotate + "deg);transition-duration:0ms;";
+        this.pswp.querySelectorAll('.oe_pswp_zoom')[this.index].querySelector('img').style.cssText = "width:" + image.orign.width + "px;height:" + image.orign.height + "px;";
+        this.zoomTouch[this.index].isMove = true;
+      }
+
+      if (this.zoomType == 'zoomDown') {
+        this.pswp.querySelectorAll('.oe_pswp_zoom')[this.index].style.cssText = "transform: translate3d(" + image.render.left + "px, " + image.render.top + "px, 0) scale(1) rotate(" + image.render.rotate + "deg);transition-duration:0ms;";
+        this.pswp.querySelectorAll('.oe_pswp_zoom')[this.index].querySelector('img').style.cssText = "width:" + image.render.width + "px;height:" + image.render.height + "px;";
+        this.zoomType = 'show';
+        this.zoomTouch[this.index].isMove = false;
+      }
+    };
+
+    _proto.initSlide = function initSlide() {
+      this.wrapperWidth = this.screenWidth;
+      this.minX = this.screenWidth - this.img.length * this.screenWidth;
+      this.offsetX = this.index * this.screenWidth * -1;
+      this.scroller.addEventListener('mousedown', this.onStart.bind(this), false);
+      this.scroller.addEventListener('mousemove', this.onMove.bind(this), false);
+      this.scroller.addEventListener('mouseup', this.onEnd.bind(this), false);
+      this.scroller.addEventListener('mouseleave', this.onEnd.bind(this), false);
+      this.scroller.addEventListener('transitionend', this.onTransitionEnd.bind(this), false);
+    };
+
+    _proto.onStart = function onStart(e) {
+      var point = e.touches ? e.touches[0] : e;
+      this.isStarted = true;
+      this.duration = 0;
+      this.stop();
+      this.pointX = point.pageX;
+      this.momentumStartX = this.startX = this.offsetX;
+      this.startTime = new Date().getTime();
+      clickType = 'click';
+    };
+
+    _proto.onMove = function onMove(e) {
+      e.preventDefault();
+      clickType = 'move';
+      if (!this.isStarted) return;
+      if (this.zoomType == 'zoomUp') return;
+      this.isTransition = false;
+      var point = e.touches ? e.touches[0] : e;
+      var deltaX = point.pageX - this.pointX; // 浮点数坐标会影响渲染速度
+
+      var offsetX = Math.round(this.startX + deltaX); // 超出边界时增加阻力
+
+      if (offsetX < this.minX) {
+        offsetX = Math.round(this.minX + (offsetX - this.minX) / 3);
+      }
+
+      if (offsetX > this.maxX) {
+        offsetX = Math.round(this.maxX + (offsetX - this.maxX) / 3);
+      }
+
+      this.offsetX = offsetX;
+      var now = new Date().getTime(); // 记录在触发惯性滑动条件下的偏移值和时间
+
+      if (now - this.startTime > this.momentumTimeThreshold) {
+        this.momentumStartX = this.offsetX;
+        this.startTime = now;
+      }
+
+      this.scrollerStyle();
+    };
+
+    _proto.onEnd = function onEnd(e) {
+      clickType = 'click';
+      if (!this.isStarted) return;
+      this.isStarted = false;
+      if (this.isNeedReset()) return;
+      var absDeltaX = Math.abs(this.offsetX - this.momentumStartX);
+      var duration = new Date().getTime() - this.startTime; // 启动惯性滑动
+
+      if (duration < this.momentumTimeThreshold && absDeltaX > this.momentumYThreshold) {
+        var momentum = this.momentum(this.offsetX, this.momentumStartX, duration);
+        this.offsetX = Math.round(momentum.destination);
+        this.duration = momentum.duration;
+        this.bezier = momentum.bezier;
+      }
+
+      this.scrollTo();
+    };
+
+    _proto.onTransitionEnd = function onTransitionEnd() {
+      this.isTransition = false;
+      this.isNeedReset();
+      clickType = 'click';
+
+      if (this.img[this.index].zoomType == 'zoomDown' || !this.img[this.index].zoomType) {
+        this.pswp.querySelector('.zoom_down').classList.add('disabled');
+      } else {
+        this.pswp.querySelector('.zoom_down').classList.remove('disabled');
+      }
+
+      if (this.img[this.index].zoomType == 'zoomUp' || !this.img[this.index].zoomType == 'zoomUp') {
+        this.pswp.querySelector('.zoom_up').classList.add('disabled');
+      } else {
+        this.pswp.querySelector('.zoom_up').classList.remove('disabled');
+      }
+    };
+
+    _proto.momentum = function momentum(current, start, duration) {
+      var durationMap = {
+        'noBounce': 2500,
+        'weekBounce': 800,
+        'strongBounce': 400
+      };
+      var bezierMap = {
+        'noBounce': 'cubic-bezier(.17, .89, .45, 1)',
+        'weekBounce': 'cubic-bezier(.25, .46, .45, .94)',
+        'strongBounce': 'cubic-bezier(.25, .46, .45, .94)'
+      };
+      var type = 'noBounce'; // 惯性滑动加速度
+
+      var deceleration = 0.003; // 回弹阻力
+
+      var bounceRate = 10; // 强弱回弹的分割值
+
+      var bounceThreshold = 300; // 回弹的最大限度
+
+      var maxOverflowX = this.wrapperWidth / 6;
+      var overflowX;
+      var distance = current - start;
+      var speed = 2 * Math.abs(distance) / duration;
+      var destination = current + speed / deceleration * (distance < 0 ? -1 : 1);
+
+      if (destination < this.minX) {
+        overflowX = this.minX - destination;
+        type = overflowX > bounceThreshold ? 'strongBounce' : 'weekBounce';
+        destination = Math.max(this.minX - maxOverflowX, this.minX - overflowX / bounceRate);
+      } else if (destination > this.maxX) {
+        overflowX = destination - this.maxX;
+        type = overflowX > bounceThreshold ? 'strongBounce' : 'weekBounce';
+        destination = Math.min(this.maxX + maxOverflowX, this.maxX + overflowX / bounceRate);
+      }
+
+      return {
+        destination: destination,
+        duration: durationMap[type],
+        bezier: bezierMap[type]
+      };
+    } // 超出边界时需要重置位置
+    ;
+
+    _proto.isNeedReset = function isNeedReset() {
+      var offsetX;
+
+      if (this.offsetX < this.minX) {
+        offsetX = this.minX;
+      } else if (this.offsetX > this.maxX) {
+        offsetX = this.maxX;
+      }
+
+      if (typeof offsetX !== 'undefined') {
+        this.offsetX = offsetX;
+        this.duration = 500;
+        this.bezier = 'cubic-bezier(.165, .84, .44, 1)';
+        this.scroller.style.cssText = "transform: translate3d(" + this.offsetX + "px, 0, 0);transition-duration: " + this.duration + "ms;transition-timing-function: " + this.bezier + ";";
+        return true;
+      }
+
+      this.scroller.style.cssText = "transform: translate3d(" + this.offsetX + "px, 0, 0);transition-duration: " + this.duration + "ms;transition-timing-function: " + this.bezier + ";";
+      return false;
+    };
+
+    _proto.stop = function stop() {
+      // 获取当前 translate 的位置
+      var matrix = window.getComputedStyle(this.scroller).getPropertyValue('transform');
+      this.offsetX = Math.round(+matrix.split(')')[0].split(', ')[4]);
+      this.scrollerStyle();
+    };
+
+    _proto.scrollerStyle = function scrollerStyle() {
+      this.scroller.style.cssText = "transform: translate3d(" + this.offsetX + "px, 0, 0);transition-duration: 0ms;transition-timing-function: " + this.bezier + ";";
+    };
+
+    _proto.scrollTo = function scrollTo() {
+      var offsetX = this.offsetX;
+      var index = parseInt(Math.abs(this.offsetX) / this.screenWidth);
+      var distanceX = 0,
+          action = 'restore';
+
+      if (index >= this.index) {
+        distanceX = Math.abs(this.offsetX) - this.index * this.screenWidth;
+        action = distanceX / this.screenWidth * 100 > this.threshold ? 'next' : 'restore';
+      } else if (index < this.index) {
+        distanceX = Math.abs(this.offsetX) - index * this.screenWidth;
+        action = distanceX / this.screenWidth * 100 < 100 - this.threshold ? 'prev' : 'restore';
+      } else {
+        action = 'restore';
+      }
+
+      switch (action) {
+        case 'restore':
+          break;
+
+        case 'next':
+          this.index++;
+          break;
+
+        case 'prev':
+          this.index--;
+          break;
+
+        default:
+      }
+
+      this.offsetX = this.index * this.screenWidth * -1;
+      this.duration = 400;
+      this.bezier = 'cubic-bezier(.25, .46, .45, .94)';
+      this.scroller.style.cssText = "transform: translate3d(" + this.offsetX + "px, 0, 0);transition-duration: " + this.duration + "ms;transition-timing-function: " + this.bezier + ";";
+
+      if (this.offsetX != offsetX) {
+        this.isTransition = true;
+      }
+    };
+
+    _proto.zoomItemDoubleClick = function zoomItemDoubleClick(e) {
+      var _this8 = this;
+
+      delta = Date.now() - now; //计算两次点击时间差
+
+      now = Date.now();
+
+      if (delta > 0 && delta <= 250) {
+        //双击事件
+        clearTimeout(clickTimer);
+        e.preventDefault();
+
+        if (this.zoomType == 'show') {// this.zoomUp(e)
+        } else {
+          this.zoomTouch[this.index].isMove = false; // this.zoomDown(e);
+        }
+      } else {
+        //单击事件
+        clickTimer = setTimeout(function () {
+          if (_this8.zoomType != 'zoomUp' && _this8.zoomType == 'show') {
+            _this8.clickHide();
+          }
+        }, 450);
+      }
+    };
+
+    _proto.zoomUp = function zoomUp(e) {
+      if (this.isTransition) return;
+      this.zoomType = 'zoomUp';
+      var image = this.img[this.index];
+      this.img[this.index].zoomType = 'zoomUp';
+      var scale = image.orign.width / image.render.width;
+      var pageX = e ? e.changedTouches[0].pageX : window.innerWidth / 2;
+      var pageY = e ? e.changedTouches[0].pageY : window.innerHeight / 2;
+      var zoomX = (pageX - image.render.left) * scale;
+      var zoomY = (pageY - image.render.top) * scale;
+      var left = image.render.left - (zoomX - (pageX - image.render.left));
+      var top = image.render.top - (zoomY - (pageY - image.render.top));
+
+      if (image.orign.width > window.innerWidth) {
+        zoomLeft = left;
+      } else {
+        zoomLeft = (window.innerWidth - image.orign.width) / 2;
+      }
+
+      if (image.orign.height > window.innerHeight) {
+        zoomTop = top;
+      } else {
+        zoomTop = (window.innerHeight - image.orign.height) / 2;
+      }
+
+      this.pswp.querySelectorAll('.oe_pswp_zoom')[this.index].style.cssText = "transform: translate3d(" + zoomLeft + "px, " + zoomTop + "px, 0) scale(" + scale + ") rotate(" + image.render.rotate + "deg);transition-duration:333ms;";
+      this.isTransition = true;
+    };
+
+    _proto.zoomDown = function zoomDown(e) {
+      if (this.isTransition) return;
+      this.zoomType = 'zoomDown';
+      var image = this.img[this.index];
+      this.img[this.index].zoomType = 'zoomDown';
+      var scale = image.render.width / image.orign.width;
+      this.pswp.querySelectorAll('.oe_pswp_zoom')[this.index].style.cssText = "transform: translate3d(" + image.render.left + "px, " + image.render.top + "px, 0) scale(" + scale + ") rotate(" + image.render.rotate + "deg);transition-duration:333ms;";
+      this.isTransition = true;
+    };
+
+    _proto.showLoading = function showLoading() {
+      var html = '';
+      html += "\n        <div class=\"oe_pswp_loading\">\n          <svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 100 100\" preserveAspectRatio=\"xMidYMid\" >\n          <g transform=\"rotate(0 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.9166666666666666s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(30 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.8333333333333334s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(60 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.75s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(90 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.6666666666666666s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(120 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.5833333333333334s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(150 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.5s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(180 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.4166666666666667s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(210 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.3333333333333333s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(240 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.25s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(270 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.16666666666666666s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(300 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"-0.08333333333333333s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g><g transform=\"rotate(330 50 50)\">\n            <rect x=\"47\" y=\"24\" rx=\"3\" ry=\"3\" width=\"6\" height=\"12\" fill=\"#000000\">\n              <animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;1\" dur=\"1s\" begin=\"0s\" repeatCount=\"indefinite\"/>\n            </rect>\n          </g>\n        </svg>\n      </div>\n      ";
+      var div = document.createElement('div');
+      div.innerHTML = html;
+      this.loading = div.firstElementChild;
+      document.body.appendChild(this.loading);
+    };
+
+    _proto.hideLoading = function hideLoading() {
+      this.loading.remove ? this.loading.remove() : this.loading.removeNode(true);
+    };
+
+    _proto.bindClose = function bindClose() {
+      var _this9 = this;
+
+      this.pswp.querySelector('.close').addEventListener('click', function () {
+        _this9.clickHide();
+
+        _this9.pswp.querySelector('.zoom_down').classList.add('disabled');
+
+        _this9.pswp.querySelector('.zoom_up').classList.remove('disabled');
+      }, false);
+    };
+
+    _proto.bindZoomUp = function bindZoomUp() {
+      var _this10 = this;
+
+      this.pswp.querySelector('.zoom_up').addEventListener('click', function (e) {
+        if (_this10.img[_this10.index].zoomType == 'zoomUp') return;
+        _this10.img[_this10.index].zoomType = 'zoomUp';
+        e.currentTarget.classList.add('disabled');
+
+        _this10.pswp.querySelector('.zoom_down').classList.remove('disabled');
+
+        _this10.zoomUp();
+      }, false);
+    };
+
+    _proto.bindZoomDown = function bindZoomDown() {
+      var _this11 = this;
+
+      this.pswp.querySelector('.zoom_down').addEventListener('click', function (e) {
+        if (_this11.img[_this11.index].zoomType == 'zoomDown') return;
+        _this11.img[_this11.index].zoomType == 'zoomDown';
+        e.currentTarget.classList.add('disabled');
+
+        _this11.pswp.querySelector('.zoom_up').classList.remove('disabled');
+
+        _this11.zoomDown();
+      }, false);
+    };
+
+    _proto.bindNext = function bindNext() {
+      var _this12 = this;
+
+      this.pswp.querySelector('.next').addEventListener('click', function (e) {
+        if (_this12.index >= _this12.img.length - 1) return;
+        _this12.index++;
+        _this12.offsetX = _this12.index * _this12.screenWidth * -1;
+        _this12.duration = 400;
+        _this12.bezier = 'cubic-bezier(.25, .46, .45, .94)';
+        _this12.scroller.style.cssText = "transform: translate3d(" + _this12.offsetX + "px, 0, 0);transition-duration: " + _this12.duration + "ms;transition-timing-function: " + _this12.bezier + ";";
+      }, false);
+    };
+
+    _proto.bindPrev = function bindPrev() {
+      var _this13 = this;
+
+      this.pswp.querySelector('.prev').addEventListener('click', function (e) {
+        if (_this13.index <= 0) return;
+        _this13.index--;
+        _this13.offsetX = _this13.index * _this13.screenWidth * -1;
+        _this13.duration = 400;
+        _this13.bezier = 'cubic-bezier(.25, .46, .45, .94)';
+        _this13.scroller.style.cssText = "transform: translate3d(" + _this13.offsetX + "px, 0, 0);transition-duration: " + _this13.duration + "ms;transition-timing-function: " + _this13.bezier + ";";
+      }, false);
+    };
+
+    return PhotoSwipe;
+  }();
+
+  new PhotoSwipe(); //图片放大后拖动图片类
+
+  var Touch = /*#__PURE__*/function () {
+    function Touch(opitons) {
+      var defaultOption = {};
+      this.opitons = Object.assign(defaultOption, opitons);
+      this.minX = 0;
+      this.minY = 0;
+      this.maxX = 0;
+      this.maxY = 0;
+      this.wrapperWidth = 0;
+      this.wrapperHeight = 0;
+      this.offsetX = 0;
+      this.offsetY = 0;
+      this.duration = 0;
+      this.bezier = 'linear';
+      this.startX = 0;
+      this.startY = 0;
+      this.pointX = 0;
+      this.pointY = 0;
+      this.startTime = 0; // 惯性滑动范围内的 startTime
+
+      this.momentumStartX = 0; // 惯性滑动范围内的 startY
+
+      this.momentumStartY = 0;
+      this.momentumTimeThreshold = 300; // 惯性滑动的启动 时间阈值
+
+      this.momentumYThreshold = 15; // 惯性滑动的启动 距离阈值
+
+      this.isStarted = false; // start锁
+
+      this.isMove = false;
+      this.init();
+    }
+
+    var _proto2 = Touch.prototype;
+
+    _proto2.init = function init() {
+      this.el = this.opitons.el;
+      this.wrapperWidth = this.opitons.img.orign.width;
+      this.wrapperHeight = this.opitons.img.orign.height;
+
+      if (this.wrapperWidth < window.innerWidth) {
+        this.minX = this.maxX = (window.innerWidth - this.wrapperWidth) / 2;
+      } else {
+        this.minX = window.innerWidth - this.wrapperWidth;
+      }
+
+      if (this.wrapperHeight < window.innerHeight) {
+        this.minY = this.maxY = (window.innerHeight - this.wrapperHeight) / 2;
+      } else {
+        this.minY = window.innerHeight - this.wrapperHeight;
+      }
+
+      this.bindEvent();
+    };
+
+    _proto2.bindEvent = function bindEvent() {
+      this.el.addEventListener('mousedown', this.touchstart.bind(this), false);
+      this.el.addEventListener('mousemove', this.touchmove.bind(this), false);
+      this.el.addEventListener('mouseup', this.touchend.bind(this), false);
+      this.el.addEventListener('mouseleave', this.touchend.bind(this), false);
+    };
+
+    _proto2.unbindEvent = function unbindEvent() {
+      this.el.removeEventListener('mousedown', this.touchstart.bind(this), false);
+      this.el.removeEventListener('mousemove', this.touchmove.bind(this), false);
+      this.el.removeEventListener('mouseup', this.touchend.bind(this), false);
+      this.el.removeEventListener('mouseleave', this.touchend.bind(this), false);
+    };
+
+    _proto2.touchstart = function touchstart(e) {
+      var point = e.touches ? e.touches[0] : e;
+      if (!this.isMove) return;
+      this.isStarted = true;
+      this.duration = 0;
+      this.stop();
+      this.pointX = point.pageX;
+      this.pointY = point.pageY;
+      this.momentumStartX = this.startX = this.offsetX;
+      this.momentumStartY = this.startY = this.offsetY;
+      this.startTime = new Date().getTime();
+    };
+
+    _proto2.touchmove = function touchmove(e) {
+      e.preventDefault();
+      if (!this.isStarted) return;
+      if (!this.isMove) return;
+      var point = e.touches ? e.touches[0] : e;
+      var deltaX = point.pageX - this.pointX;
+      var deltaY = point.pageY - this.pointY; // 浮点数坐标会影响渲染速度
+
+      var offsetX = Math.round(this.startX + deltaX);
+      var offsetY = Math.round(this.startY + deltaY); // 超出边界时增加阻力
+
+      if (offsetX < this.minX) {
+        offsetX = Math.round(this.minX + (offsetX - this.minX) / 3);
+      }
+
+      if (offsetX > this.maxX) {
+        offsetX = Math.round(this.maxX + (offsetX - this.maxX) / 3);
+      }
+
+      if (offsetY < this.minY) {
+        offsetY = Math.round(this.minY + (offsetY - this.minY) / 3);
+      }
+
+      if (offsetY > this.maxY) {
+        offsetY = Math.round(this.maxY + (offsetY - this.maxY) / 3);
+      }
+
+      this.offsetX = offsetX;
+      this.offsetY = offsetY;
+      var now = new Date().getTime(); // 记录在触发惯性滑动条件下的偏移值和时间
+
+      if (now - this.startTime > this.momentumTimeThreshold) {
+        this.momentumStartX = this.offsetX;
+        this.momentumStartY = this.offsetY;
+        this.startTime = now;
+      }
+
+      this.el.style.cssText = "transform: translate3d(" + this.offsetX + "px, " + this.offsetY + "px, 0);transition-duration: " + this.duration + "ms;transition-timing-function: " + this.bezier + ";";
+    };
+
+    _proto2.touchend = function touchend() {
+      if (!this.isStarted) return;
+      this.isStarted = false;
+      if (this.isNeedReset()) return;
+    };
+
+    _proto2.stop = function stop() {
+      var matrix = window.getComputedStyle(this.el).getPropertyValue('transform');
+      this.offsetX = Math.round(+matrix.split(')')[0].split(', ')[4]);
+      this.offsetY = Math.round(+matrix.split(')')[0].split(', ')[5]);
+      this.el.style.cssText = "transform: translate3d(" + this.offsetX + "px, " + this.offsetY + "px, 0);transition-duration: " + this.duration + "ms;transition-timing-function: " + this.bezier + ";";
+    };
+
+    _proto2.isNeedReset = function isNeedReset() {
+      var offsetX, offsetY;
+
+      if (this.wrapperWidth < window.innerWidth) {
+        this.minX = this.maxX = (window.innerWidth - this.wrapperWidth) / 2;
+      } else {
+        this.maxX = 0;
+      }
+
+      if (this.wrapperHeight < window.innerHeight) {
+        this.minY = this.maxY = (window.innerHeight - this.wrapperHeight) / 2;
+      } else {
+        this.maxY = 0;
+      }
+
+      if (this.offsetX < this.minX) {
+        offsetX = this.minX;
+      } else if (this.offsetX > this.maxX) {
+        offsetX = this.maxX;
+      }
+
+      if (this.offsetY < this.minY) {
+        offsetY = this.minY;
+      } else if (this.offsetY > this.maxY) {
+        offsetY = this.maxY;
+      }
+
+      if (typeof offsetX !== 'undefined' || typeof offsetY !== 'undefined') {
+        this.offsetX = typeof offsetX !== 'undefined' ? offsetX : this.offsetX;
+        this.offsetY = typeof offsetY !== 'undefined' ? offsetY : this.offsetY;
+        this.duration = 500;
+        this.bezier = 'cubic-bezier(.165, .84, .44, 1)';
+        this.el.style.cssText = "transform: translate3d(" + this.offsetX + "px, " + this.offsetY + "px, 0);transition-duration: " + this.duration + "ms;transition-timing-function: " + this.bezier + ";";
+        return true;
+      }
+
+      return false;
+    };
+
+    return Touch;
+  }();
+})();
